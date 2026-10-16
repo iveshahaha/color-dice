@@ -1,298 +1,758 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Color Dice — Roll 6-Sided Color Dice</title>
-<style>
-  :root {
-    --bg: #0a84ff;
-    --bg2: #0060df;
-    --card: rgba(255, 255, 255, 0.14);
-    --card-border: rgba(255, 255, 255, 0.22);
-    --text: #ffffff;
-    --muted: rgba(255, 255, 255, 0.85);
-    --accent: #ffffff;
-    --die: #ffffff;
-  }
-  body[data-theme="green"]  { --bg: #1e8e3e; --bg2: #137333; }
-  body[data-theme="red"]    { --bg: #d93025; --bg2: #a50e0e; }
-  body[data-theme="purple"] { --bg: #8430ce; --bg2: #5f259f; }
-  body[data-theme="dark"]   { --bg: #1f2430; --bg2: #12151c; --card: rgba(255,255,255,0.08); --card-border: rgba(255,255,255,0.14); }
-
-  * { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; }
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    color: var(--text);
-    background: linear-gradient(160deg, var(--bg) 0%, var(--bg2) 100%);
-    background-attachment: fixed;
-    min-height: 100vh;
-    -webkit-font-smoothing: antialiased;
-  }
-  .wrap { max-width: 720px; margin: 0 auto; padding: 40px 16px 60px; }
-  header { text-align: center; margin-bottom: 22px; }
-  header h1 { font-size: 34px; margin: 0 0 6px; letter-spacing: -0.02em; }
-  header p  { margin: 0; color: var(--muted); font-size: 15px; }
-
-  .controls {
-    display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;
-    margin-bottom: 20px;
-  }
-  select {
-    font-size: 15px; padding: 10px 12px; border-radius: 10px;
-    border: 1px solid var(--card-border); background: rgba(255,255,255,0.15);
-    color: var(--text); cursor: pointer; outline: none;
-  }
-  select option { color: #111; background: #fff; }
-
-  .card {
-    background: var(--card);
-    border: 1px solid var(--card-border);
-    border-radius: 18px;
-    padding: 24px;
-  }
-
-  .dice-area {
-    display: flex; flex-wrap: wrap; gap: 12px; justify-content: center;
-    min-height: 68px; align-items: center; margin-bottom: 22px;
-  }
-  .die {
-    width: 60px; height: 60px; background: var(--die);
-    border-radius: 12px; display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 3px 8px rgba(0,0,0,0.22);
-    transition: transform 0.12s ease;
-  }
-  .die .pip { width: 22px; height: 22px; border-radius: 50%; background: #bbb; transition: background 0.1s; }
-  .die.rolling { animation: shake 0.45s ease; }
-  @keyframes shake {
-    0% { transform: rotate(0) scale(1); }
-    30% { transform: rotate(-12deg) scale(1.08); }
-    60% { transform: rotate(12deg) scale(1.08); }
-    100% { transform: rotate(0) scale(1); }
-  }
-
-  button#roll {
-    display: block; margin: 0 auto 20px; font-size: 20px; font-weight: 700;
-    padding: 14px 40px; border-radius: 999px; cursor: pointer;
-    border: none; background: #ffffff; color: #1a1a1a;
-    box-shadow: 0 4px 14px rgba(0,0,0,0.22);
-    transition: transform 0.08s ease, box-shadow 0.08s ease;
-  }
-  button#roll:active { transform: scale(0.97); box-shadow: 0 2px 6px rgba(0,0,0,0.25); }
-
-  h2 { font-size: 17px; margin: 0 0 12px; text-align: center; }
-
-  .stats { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 12px; }
-  .badge {
-    background: #fff; color: #1a1a1a; border-radius: 8px; padding: 4px 10px;
-    font-size: 14px; font-weight: 700;
-  }
-  .badge .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; }
-
-  .history { font-size: 14px; }
-  .row {
-    display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
-    border-bottom: 1px dashed rgba(255,255,255,0.4); padding: 6px 0;
-  }
-  .row:last-child { border-bottom: none; }
-  .row .label { min-width: 96px; color: var(--muted); font-size: 13px; }
-  .mini {
-    width: 26px; height: 26px; border-radius: 6px; background: #fff;
-    display: inline-flex; align-items: center; justify-content: center;
-  }
-  .mini .pip { width: 9px; height: 9px; border-radius: 50%; }
-  .empty { color: var(--muted); text-align: center; padding: 10px 0; }
-
-  footer { text-align: center; margin-top: 30px; color: var(--muted); font-size: 13px; }
-  footer a { color: var(--text); }
-</style>
-</head>
-<body data-theme="blue">
-<div class="wrap">
-  <header>
-    <h1>Color Dice</h1>
-    <p>Roll 6-sided color dice — Red, Orange, Yellow, Green, Blue, Purple</p>
-  </header>
-
-  <div class="controls">
-    <select id="num-select" title="Number of dice">
-      <option value="1">1 die</option>
-      <option value="2">2 dice</option>
-      <option value="3">3 dice</option>
-      <option value="4" selected>4 dice</option>
-      <option value="5">5 dice</option>
-      <option value="6">6 dice</option>
-      <option value="8">8 dice</option>
-      <option value="10">10 dice</option>
-      <option value="12">12 dice</option>
-      <option value="16">16 dice</option>
-      <option value="20">20 dice</option>
-      <option value="30">30 dice</option>
-      <option value="50">50 dice</option>
-      <option value="100">100 dice</option>
-    </select>
-    <select id="theme-select" title="Theme">
-      <option value="blue">Blue</option>
-      <option value="green">Green</option>
-      <option value="red">Red</option>
-      <option value="purple">Purple</option>
-      <option value="dark">Dark</option>
-    </select>
-  </div>
-
-  <div class="card">
-    <div class="dice-area" id="dice-area"></div>
-    <button id="roll">Go Again</button>
-
-    <div class="stats" id="stats"></div>
-    <h2>Your Last 20 Rolls</h2>
-    <div class="history" id="history"></div>
-  </div>
-
-  <footer>
-    Clean, self-contained color dice roller. No ads, no trackers, no external requests.
-  </footer>
+	<head>
+		<!-- Adsense Tag -->
+				<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4469574894345660" crossorigin="anonymous"></script>
+				<!-- Header Tags -->
+		<title>Roll 4x 6-sided dice (4d6) | Online-Dice.com</title>
+		<meta name="robots" content="index,follow" />
+		<meta name="description" content="Roll virtual dice with this free dice simulator. Roll up to 100 dice. Roll 4x 6-sided dice."/>
+		<meta name="keywords" content=""/>
+		<meta charset="utf-8"/>
+		<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+		<!-- Language Tags -->
+		<link rel="alternate" hreflang="en" href="https://www.online-dice.com/roll-dice/4/d6/" />
+		<link rel="alternate" hreflang="es" href="https://www.online-dice.com/es/roll-dice/4/d6/" />
+		<link rel="alternate" hreflang="de" href="https://www.online-dice.com/de/roll-dice/4/d6/" />
+		<link rel="alternate" hreflang="pl" href="https://www.online-dice.com/pl/roll-dice/4/d6/" />
+		<link rel="alternate" hreflang="pt" href="https://www.online-dice.com/pt/roll-dice/4/d6/" />
+		<link rel="alternate" hreflang="fr" href="https://www.online-dice.com/fr/roll-dice/4/d6/" />
+		<link rel="alternate" hreflang="x-default" href="https://www.online-dice.com/roll-dice/4/d6/" />
+		<!-- Apple PWA Tags -->
+		<meta name="apple-mobile-web-app-capable" content="yes"/>
+		<meta name="mobile-web-app-capable" content="yes"/>
+		<link href="https://www.online-dice.com/manifest.json" rel="manifest">
+		<!-- Social Meta Tags -->
+		<meta property="og:title" content="Roll 4x 6-sided dice (4d6) | Online-Dice.com"/>
+		<meta property="og:description" content="Roll virtual dice with this free dice simulator. Roll up to 100 dice. Roll 4x 6-sided dice."/>
+		<meta property="og:image" content="https://www.online-dice.com/images/social-logo.jpg"/>
+		<meta property="og:url" content="https://www.online-dice.com/"/>
+		<meta property="og:locale" content="en" />
+		<meta property="og:type" content="website" />
+		<meta property="fb:app_id" content="539741069902637" />
+		<meta name="twitter:title" content="Roll 4x 6-sided dice (4d6) | Online-Dice.com"/>
+		<meta name="twitter:description" content="Roll virtual dice with this free dice simulator. Roll up to 100 dice. Roll 4x 6-sided dice."/>
+		<meta name="twitter:image" content="https://www.online-dice.com/images/social-logo.jpg"/>
+		<meta name="twitter:card" content="summary_large_image"/>
+		<!-- Font -->
+				<link rel="preload" as="font" href="https://www.online-dice.com/fonts/Marvin-webfont.woff2" type="font/woff2" crossorigin="">
+		<link rel="preload" as="font" href="https://www.online-dice.com/fonts/dicefont.woff" type="font/woff" crossorigin="">	
+				<!-- CSS File -->
+		<link id='theme-css' rel='stylesheet' href='https://www.online-dice.com/css/style.php?v=082526'/>		<!-- Icons -->
+		<link rel="apple-touch-icon" sizes="180x180" href="https://www.online-dice.com/apple-touch-icon.png">
+		<link rel="icon" type="image/png" sizes="32x32" href="https://www.online-dice.com/favicon-32x32.png">
+		<link rel="icon" type="image/png" sizes="16x16" href="https://www.online-dice.com/favicon-16x16.png">
+		<link rel='mask-icon' href='https://www.online-dice.com/safari-pinned-tab.svg' color='#0088ff'><meta name='msapplication-TileColor' content='#33aaff'><meta name='theme-color' content='#33aaff'>	</head>
+	<body>
+		<div class="loader">
+			<div class="loader-wrapper">
+				<div class="loader-loader">
+					<h1 class="loader-title"></h1>
+					<div class='loader-dice dice-wrapper size-100'><i></i></div><div class='loader-dice dice-wrapper size-100'><i></i></div><div class='loader-dice dice-wrapper size-100'><i></i></div><div class='loader-dice dice-wrapper size-100'><i></i></div>				</div>
+			</div>
+		</div>
+		<div class="light"></div>
+		<div id="fixed-ad-top" class="fixed-ad-top" style="overflow:hidden;">
+			<ins class="adsbygoogle"
+	             style="display:block;margin:0 auto;text-align:center;min-width:300px;max-width:728px;width:100%;"
+	             data-ad-client="ca-pub-4469574894345660"
+	             data-ad-slot="6650061531"
+	             data-full-width-responsive="false"></ins>
+	         <script>
+	             (adsbygoogle = window.adsbygoogle || []).push({});
+	        </script>
+		</div>		<div id="content">
+			<div class="inner" >
+				<div class="card full block centered">
+					<h1 id="title" class="pc-only"><a title="Online Dice" href="https://www.online-dice.com/"><img fetchpriority="high" id="logo" src="https://www.online-dice.com/images/logo-new.png" width="auto" height="70"></a></h1>
+					<h1 id="title" class="mob-only"><a title="Online Dice" href="https://www.online-dice.com/"><img fetchpriority="high" id="logo" src="https://www.online-dice.com/images/logo-new-mob.png" width="auto" height="40"></a></h1>
+					<h3 id="sub-title">Virtual Dice Simulator</h3>
+				</div>
+				<div id="ad-box-top" class="centered" style="margin:5px auto 15px auto;min-height:250px;max-height:320px;height:auto;">
+					<div id="alt-ad-top" style="display:none;width:0;height:0;"></div>
+					<ins id="top-ad" class="adsbygoogle"
+                         style="display:block;margin:0 auto;text-align:center;min-width:250px;max-width:100%;width:100%;max-height:280px;"
+                         data-ad-client="ca-pub-4469574894345660"
+                         data-ad-slot="8539262816"
+                         data-ad-format="rectangle,horizontal"
+                         data-full-width-responsive="true"></ins>
+                    <script>
+                         (adsbygoogle = window.adsbygoogle || []).push({});
+                    </script>
+				</div>
+				<div id="top-wrapper" style="text-align: center;">
+					<div id="ad-box-left" class="card third inline-block" style="will-change:transform;">
+						<ins class="adsbygoogle"
+	                         style="display:block;margin:0 auto;text-align:center;min-width:300px;max-width:100%;width:100%;"
+	                         data-ad-client="ca-pub-4469574894345660"
+	                         data-ad-slot="7473863708"
+	                         data-ad-format="rectangle,vertical"
+	                         data-full-width-responsive="false"></ins>
+	                     <script>
+	                         (adsbygoogle = window.adsbygoogle || []).push({});
+	                    </script>
+					</div><div id="dice-roll-box" class="card two-thirds inline-block padded more-rounded filled">
+												<h3 id="sub-title2">Choose Your Dice</h3>
+						<select id="num-select" name="num-select" class="rounded" autocomplete="off" style="width:calc(33.3% - 10px);">
+							<option value='1'>1 die</option><option value='2'>2 dice</option><option value='3'>3 dice</option><option value='4' selected>4 dice</option><option value='5'>5 dice</option><option value='6'>6 dice</option><option value='7'>7 dice</option><option value='8'>8 dice</option><option value='9'>9 dice</option><option value='10'>10 dice</option><option value='11'>11 dice</option><option value='12'>12 dice</option><option value='13'>13 dice</option><option value='14'>14 dice</option><option value='15'>15 dice</option><option value='16'>16 dice</option><option value='17'>17 dice</option><option value='18'>18 dice</option><option value='19'>19 dice</option><option value='20'>20 dice</option><option value='21'>21 dice</option><option value='22'>22 dice</option><option value='23'>23 dice</option><option value='24'>24 dice</option><option value='25'>25 dice</option><option value='26'>26 dice</option><option value='27'>27 dice</option><option value='28'>28 dice</option><option value='29'>29 dice</option><option value='30'>30 dice</option><option value='31'>31 dice</option><option value='32'>32 dice</option><option value='33'>33 dice</option><option value='34'>34 dice</option><option value='35'>35 dice</option><option value='36'>36 dice</option><option value='37'>37 dice</option><option value='38'>38 dice</option><option value='39'>39 dice</option><option value='40'>40 dice</option><option value='41'>41 dice</option><option value='42'>42 dice</option><option value='43'>43 dice</option><option value='44'>44 dice</option><option value='45'>45 dice</option><option value='46'>46 dice</option><option value='47'>47 dice</option><option value='48'>48 dice</option><option value='49'>49 dice</option><option value='50'>50 dice</option><option value='51'>51 dice</option><option value='52'>52 dice</option><option value='53'>53 dice</option><option value='54'>54 dice</option><option value='55'>55 dice</option><option value='56'>56 dice</option><option value='57'>57 dice</option><option value='58'>58 dice</option><option value='59'>59 dice</option><option value='60'>60 dice</option><option value='61'>61 dice</option><option value='62'>62 dice</option><option value='63'>63 dice</option><option value='64'>64 dice</option><option value='65'>65 dice</option><option value='66'>66 dice</option><option value='67'>67 dice</option><option value='68'>68 dice</option><option value='69'>69 dice</option><option value='70'>70 dice</option><option value='71'>71 dice</option><option value='72'>72 dice</option><option value='73'>73 dice</option><option value='74'>74 dice</option><option value='75'>75 dice</option><option value='76'>76 dice</option><option value='77'>77 dice</option><option value='78'>78 dice</option><option value='79'>79 dice</option><option value='80'>80 dice</option><option value='81'>81 dice</option><option value='82'>82 dice</option><option value='83'>83 dice</option><option value='84'>84 dice</option><option value='85'>85 dice</option><option value='86'>86 dice</option><option value='87'>87 dice</option><option value='88'>88 dice</option><option value='89'>89 dice</option><option value='90'>90 dice</option><option value='91'>91 dice</option><option value='92'>92 dice</option><option value='93'>93 dice</option><option value='94'>94 dice</option><option value='95'>95 dice</option><option value='96'>96 dice</option><option value='97'>97 dice</option><option value='98'>98 dice</option><option value='99'>99 dice</option><option value='100'>100 dice</option>						</select><select id="type-select" class="rounded" name="type-select" autocomplete="off" style="width:calc(33.3% - 10px);">
+							<option value="d4" >4-sided</option>
+							<option value="d6" selected>6-sided</option>
+							<option value="d8" >8-sided</option>
+							<option value="d10" >10-sided</option>
+							<option value="d12" >12-sided</option>
+							<option value="d20" >20-sided</option>
+							<option value="color-dice" >Color Dice</option>
+							<option value="perya-color-game">Perya Dice</option>
+						</select><select id="theme-select" class="rounded" name="theme-select" autocomplete="off" style="width:calc(33.3% - 10px);">
+							<option style="color:#aaa" value="blue" selected>Select Theme</option>
+							<option style="color:#08f" value="blue">Blue</option>
+							<option style="color:#08f" value="sab-blue" >Sab-Blue</option>
+							<option style="color:#008000" value="green" >Green</option>
+							<option style="color:#008000" value="sab-green" >Sab-Green</option>
+							<option style="color:#B22222" value="red" >Red</option>
+							<option style="color:#B22222" value="sab-red" >Sab-Red</option>
+							<option style="color:#EE82EE" value="pink" >Pink</option>
+							<option style="color:#222" value="bw" >B&W</option>
+							<option style="color:#222" value="sab-black" >Sab-Black</option>
+							<option style="color:goldenrod" value="sab-heaven" >Heaven</option>
+							<option style="color:#B22222" value="sab-hell" >Hell</option>
+							<option style="color:#08f" value="sab-underwater" >Underwater</option>
+							<option style="color:#a56c43" value="bronze"  disabled>Bronze (unlock in 8 rolls)</option>
+							<option style="color:#999" value="silver"  disabled>Silver (unlock in 18 rolls)</option>
+							<option style="color:goldenrod" value="gold"  disabled>Gold (unlock in 28 rolls)</option>
+						</select>
+						<audio autoplay="true">
+							<source src="https://www.online-dice.com/sounds/roll.ogg" type="audio/ogg">
+							<source src="https://www.online-dice.com/sounds/roll.mp3" type="audio/mpeg">
+						</audio>
+						<audio id="success-sound">
+							<source src="https://www.online-dice.com/sounds/success.ogg" type="audio/ogg">
+							<source src="https://www.online-dice.com/sounds/success.mp3" type="audio/mpeg">
+						</audio>
+						<div id="tabletop" class="tabletop">
+							<div class='dice-wrapper size-100 rounded-dice'><i class='df-solid-small-dot-d6-2'></i></div><div class='dice-wrapper size-100 rounded-dice'><i class='df-solid-small-dot-d6-6'></i></div><div class='dice-wrapper size-100 rounded-dice'><i class='df-solid-small-dot-d6-3'></i></div><div class='dice-wrapper size-100 rounded-dice'><i class='df-solid-small-dot-d6-2'></i></div>						</div>
+						<h3 id="result-text" class="result rounded" ><span class="zoom-result">Result: 13</span></h3>
+												<div id="ad-box-bottom" class="position-fix" style="margin:15px 0; min-height:1px;">
+							<div id="alt-ad" style="display:none;width:0;height:0;"></div>
+							<ins id="bottom-ad" class="adsbygoogle"
+		                         style="display:block;margin:0 auto;text-align:center;min-width:250px;max-width:100%;width:100%;"
+		                         data-ad-client="ca-pub-4469574894345660"
+		                         data-ad-slot="9968255949"
+		                         data-ad-format="rectangle,horizontal"
+		                         data-full-width-responsive="true">
+	                         </ins>
+		                     <script>
+		                         (adsbygoogle = window.adsbygoogle || []).push({});
+		                    </script>
+		               </div>						<a href="https://www.online-dice.com/roll-dice/4/d6/?h=pv" id="roll-button" class="roll-button rounded" style="padding-top:12px!important;padding-bottom:12px!important;">Go Again !</a>
+	            		<style>
+							#pwa-button {
+							  	display: inline-block;
+							    width: auto;
+							    box-sizing: border-box;
+							    font-size: 20px;
+							    padding: 20px 30px;
+							    text-shadow: none;
+							    letter-spacing: 0.02em;
+							    background: rgba(255,255,255,0.15);
+							    border-top: 2px solid rgba(255, 255, 255, 1);
+							    border-right: 2px solid rgba(255, 255, 255, 0.8);
+							    border-bottom: 2px solid rgba(255, 255, 255, 0.8);
+							    border-left: 2px solid rgba(255, 255, 255, 0.8);
+							    border-radius: 25px;
+							    transition: 0.1s;
+							    margin: 5px auto 5px auto;
+							}
+							#pwa-button:hover {
+								background: rgba(255,255,255,0.2);
+							}
+							@-moz-document url-prefix() {
+								#pwa-button {display: none!important;}
+							}
+						</style>
+						<br/><a id="pwa-button" href="javascript:void(0);" onclick="showPWA();gtag('event','pwa-install-clicked',{'event_category':'pwa-install-clicked','event_label':'pwa-install-clicked'});">Install app<span style="font-family: Arial, sans-serif;margin-top: 5px;color: #fff;display: block;font-style: italic;font-size: 16px;text-transform:none;">Fewer ads, instant access.</span></a>
+	            		<style>					
+							#tabletop p {
+								font-family: Arial, sans-serif;
+								font-weight: 700;
+								background: #fff;
+								color: red;
+								padding: 10px;
+								border-radius: 10px;
+								margin: 10px 5px 0 5px;
+							}
+	                    </style>
+	                					<div id="show-history" onclick="showHistory();" style="display:none;text-decoration:underline;cursor:pointer;margin-top:5px;font-family:Arial,sans-serif;font-size:14px;">Your Last 20 Rolls  ↓</div>
+										</div><div id="ad-box-right" class="card third inline-block" style="will-change:transform;">
+						<ins class="adsbygoogle"
+	                         style="display:block;margin:0 auto;text-align:center;min-width:300px;max-width:100%;width:100%;"
+	                         data-ad-client="ca-pub-4469574894345660"
+	                         data-ad-slot="8245122925"
+	                         data-ad-format="rectangle,vertical"
+	                         data-full-width-responsive="false"></ins>
+	                     <script>
+	                         (adsbygoogle = window.adsbygoogle || []).push({});
+	                    </script>
+					</div>										<div class="separator-xs"></div>
+					<div id="history" class="card two-thirds block padded more-rounded filled" style="text-align:center;padding-top:35px;">
+						<div id="hide-history" onclick="hideHistory();" style="position:absolute;top:10px;right:10px;font-size:12px;cursor:pointer;background: rgba(255,255,255,0.2);width: 22px;height: 22px;border-radius: 50%;">x</div>
+						<h4 class="section-title">Your Last 20 Rolls</h4>
+						<div class="card full block rounded" style="text-align:left;">
+							<div class="section-text">
+								<div style='border-bottom:1px dashed #fff;padding-bottom:5px;margin-bottom:5px;'><div style='padding-left:10px;'>This roll:</div><div style='margin-right:5px;text-align:right;width:25px;display:inline-block;vertical-align:middle;'>1.</div><div class='dice-wrapper' style='vertical-align:middle;margin:5px 2px;font-size:32px!important;width:32px!important;height:32px!important;border-radius:5px!important;-webkit-border-radius:5px!important;-moz-border-radius:5px!important;border:1px solid #fff;'><i class='df-solid-small-dot-d6-2' style='animation:none;'></i></div><div class='dice-wrapper' style='vertical-align:middle;margin:5px 2px;font-size:32px!important;width:32px!important;height:32px!important;border-radius:5px!important;-webkit-border-radius:5px!important;-moz-border-radius:5px!important;border:1px solid #fff;'><i class='df-solid-small-dot-d6-6' style='animation:none;'></i></div><div class='dice-wrapper' style='vertical-align:middle;margin:5px 2px;font-size:32px!important;width:32px!important;height:32px!important;border-radius:5px!important;-webkit-border-radius:5px!important;-moz-border-radius:5px!important;border:1px solid #fff;'><i class='df-solid-small-dot-d6-3' style='animation:none;'></i></div><div class='dice-wrapper' style='vertical-align:middle;margin:5px 2px;font-size:32px!important;width:32px!important;height:32px!important;border-radius:5px!important;-webkit-border-radius:5px!important;-moz-border-radius:5px!important;border:1px solid #fff;'><i class='df-solid-small-dot-d6-2' style='animation:none;'></i></div></div><div style='border-bottom:1px dashed #fff;padding-bottom:5px;margin-bottom:5px;'><div style='padding-left:10px;'>Previous rolls:</div><div style='margin-right:5px;text-align:right;width:25px;display:inline-block;vertical-align:middle;'>2.</div><div class='dice-wrapper' style='vertical-align:middle;margin:5px 2px;font-size:32px!important;width:32px!important;height:32px!important;border-radius:5px!important;-webkit-border-radius:5px!important;-moz-border-radius:5px!important;border:1px solid #fff;'><i class='df-solid-small-dot-d6-3' style='animation:none;'></i></div><div class='dice-wrapper' style='vertical-align:middle;margin:5px 2px;font-size:32px!important;width:32px!important;height:32px!important;border-radius:5px!important;-webkit-border-radius:5px!important;-moz-border-radius:5px!important;border:1px solid #fff;'><i class='df-solid-small-dot-d6-1' style='animation:none;'></i></div><div class='dice-wrapper' style='vertical-align:middle;margin:5px 2px;font-size:32px!important;width:32px!important;height:32px!important;border-radius:5px!important;-webkit-border-radius:5px!important;-moz-border-radius:5px!important;border:1px solid #fff;'><i class='df-solid-small-dot-d6-6' style='animation:none;'></i></div><div class='dice-wrapper' style='vertical-align:middle;margin:5px 2px;font-size:32px!important;width:32px!important;height:32px!important;border-radius:5px!important;-webkit-border-radius:5px!important;-moz-border-radius:5px!important;border:1px solid #fff;'><i class='df-solid-small-dot-d6-1' style='animation:none;'></i></div></div><div style='border-bottom:1px dashed #fff;padding-bottom:5px;margin-bottom:5px;'><div style='margin-right:5px;text-align:right;width:25px;display:inline-block;vertical-align:middle;'>3.</div><div class='dice-wrapper' style='vertical-align:middle;margin:5px 2px;font-size:32px!important;width:32px!important;height:32px!important;border-radius:5px!important;-webkit-border-radius:5px!important;-moz-border-radius:5px!important;border:1px solid #fff;'><i class='df-solid-small-dot-d6-5' style='animation:none;'></i></div></div>								<p>Please note: only dice rolls with up to 6 dice are shown.</p>
+							</div>
+						</div>
+					</div>
+									</div>
+				<div class="separator-xs"></div>
+				<div class="card two-thirds block padded more-rounded filled">
+					<h4 class="section-title">How do these virtual dice work?</h4>
+					<div class="card full block rounded">
+						<div class="section-text" style="text-transform:none;">
+							<p>This website uses virtual dice created with an algorithm that assigns equal probabilities to every possible outcome. By clicking on the 'Go Again' button you can re-roll all the dice on this page.</p><p>This page allows you to choose any number of dice between 1 and 100, as well as the types of dice used (d4, d6, d8, d10, d12 and d20). Simply use the drop-down menu above to select the dice you wish to use for your next roll.</p>						</div>
+					</div>
+				</div>
+				<div class="separator-xs"></div>
+				<div class="card two-thirds block padded more-rounded filled">
+					<h4 class="section-title">About us</h4>
+					<div class="card full">
+						<div class="section-text" style="text-transform:none;">
+							<p>Online-Dice.com is an online dice simulator that anyone can use to roll virtual dice when no real dice are available. With this free simulator you can roll dice for online games, board games, or any other game of chance.</p>						</div>
+					</div>
+				</div>
+				<div class="separator-xs"></div>
+			</div>
+		</div>
+		</div>
+		<footer id="footer">
+			<div class="inner">
+				<div class="sub-inner">
+	<div class="footer-menu-1">
+		<a onclick="gtag('event','click',{'event_category':'menu','event_label':'home'});" class="nav-item home" href="https://www.online-dice.com/">Dice Roller</a>
+		<a onclick="gtag('event','click',{'event_category':'menu','event_label':'color-dice'});" class="nav-item color-dice" title="Color Dice" href="https://www.online-dice.com/roll-color-dice/">Color Dice</a>
+				<a onclick="gtag('event','click',{'event_category':'menu','event_label':'what-are-dice'});" class="nav-item what-are-dice" title="What Are Dice?" href="https://www.online-dice.com/what-are-dice/">What Are Dice?</a>
+		<a onclick="gtag('event','click',{'event_category':'menu','event_label':'dice-games'});" class="nav-item dice-games" title="Dice Games" href="https://www.online-dice.com/dice-games/">Dice Games</a>
+			</div>
+	<div class="footer-menu-2"><a href="https://www.online-dice.com/">Home</a><a href="https://www.online-dice.com/privacy/">Privacy Policy</a><a href="https://www.online-dice.com/adfree/">Ad-free Login</a><a href="https://www.online-dice.com/adfree-streamers/">VIP Login</a></div>
+	<div class="footer-mennu-2">
+		<select id="lang-select" class="rounded" name="lang-select" autocomplete="off" style="min-width:250px;width:250px;max-width:250px;font-size:16px!important;">
+			<option value="en" selected="" style="color:#aaa">Change Language</option>
+			<option value="de">Deutsch</option>
+			<option value="en">English</option>
+			<option value="es">Español</option>
+			<option value="fr">Français</option>
+			<option value="pl">Polski</option>
+			<option value="pt">Português</option>
+		</select>
+	</div>
+	<div class="copyright">&copy; 2026 ONLINE-DICE.COM</div>
 </div>
-
+<script async src="https://www.online-dice.com/js/pwa-install.bundle.js"></script>
+<!-- PWA Install Dialog Tag -->
+<pwa-install description="Roll dice with fewer ads." disable-screenshots manual-apple manual-chrome></pwa-install>
 <script>
-  const COLORS = [
-    { name: 'Red',    css: '#e53935' },
-    { name: 'Orange', css: '#fb8c00' },
-    { name: 'Yellow', css: '#fdd835' },
-    { name: 'Green',  css: '#43a047' },
-    { name: 'Blue',   css: '#1e88e5' },
-    { name: 'Purple', css: '#8e24aa' }
+	function showPWA() {
+		var pwaInstall = document.getElementsByTagName('pwa-install')[0];
+  		pwaInstall.showDialog();
+  		gtag('event','pwaDialog',{'event_category':'pwaDialog','event_label':'pwaDialog'});
+	}
+</script>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-CGMZ8CC171"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-CGMZ8CC171');
+</script>
+<script async src="https://fundingchoicesmessages.google.com/i/pub-4469574894345660?ers=1"></script><script>(function() {function signalGooglefcPresent() {if (!window.frames['googlefcPresent']) {if (document.body) {const iframe = document.createElement('iframe'); iframe.style = 'width: 0; height: 0; border: none; z-index: -1000; left: -1000px; top: -1000px;'; iframe.style.display = 'none'; iframe.name = 'googlefcPresent'; document.body.appendChild(iframe);} else {setTimeout(signalGooglefcPresent, 0);}}}signalGooglefcPresent();})();</script>
+<script>
+	(async () => {
+	  try {
+	    const r = await fetch(
+	      "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?cb=" +
+	      crypto.randomUUID(),
+	      { cache: "no-store" }
+	    );
+	
+	    const text = await r.text();
+	
+	    if (text.length < 10000) {
+	      lockPageContentNew();
+	    }
+	  } catch (e) {
+	    console.log("Fetch failed or blocked:", e);
+	  }
+	})();
+
+	async function isAdBlockerActiveNew() {
+	  try {
+	    const res = await fetch(
+	      'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js',
+	      { method: 'GET', cache: 'no-store' } // GET instead of HEAD to get body size
+	    );
+	    const text = await res.text();
+	    return text.length < 10000;
+	  } catch (e) {
+	    return true; // fetch was blocked
+	  }
+	}
+	
+	document.addEventListener('DOMContentLoaded', async () => {
+	  const blocked = await isAdBlockerActiveNew();
+	  if (blocked) {
+	    lockPageContentNew();
+	  }
+	});
+	
+	function lockPageContentNew() {
+		if(document.getElementById("dice-roll-box")) {
+			document.getElementById("dice-roll-box").style.display = "inline-block";
+	 	}
+		if(document.getElementById("ad-box-top")) {
+			document.getElementById("ad-box-top").style.display = "none";
+	 	}
+	 	if(document.getElementById("ad-box-left")) {
+			document.getElementById("ad-box-left").style.display = "none";
+			if(document.getElementById("dice-roll-box")) {
+				document.getElementById("dice-roll-box").style.display = "block";
+		 	}
+	 	}
+	 	if(document.getElementById("ad-box-right")) {
+			document.getElementById("ad-box-right").style.display = "none";
+			if(document.getElementById("dice-roll-box")) {
+				document.getElementById("dice-roll-box").style.display = "block";
+		 	}
+	 	}
+	 	if(document.getElementById("ad-box-bottom")) {
+			document.getElementById("ad-box-bottom").style.display = "none";
+	 	}
+	 	if(document.getElementById("dice-roll-box")) {
+	 		document.getElementById("dice-roll-box").innerHTML = "<style>#pwa-button,#pwa-button2 {display: inline-block;width: auto;box-sizing: border-box;font-size: 20px;padding: 20px 30px;text-shadow: none;letter-spacing: 0.02em;background: rgba(255,255,255,0.15);border-top: 2px solid rgba(255, 255, 255, 1);border-right: 2px solid rgba(255, 255, 255, 0.8);border-bottom: 2px solid rgba(255, 255, 255, 0.8);border-left: 2px solid rgba(255, 255, 255, 0.8);border-radius: 25px;transition: 0.1s;margin: 5px auto 5px auto;}#pwa-button:hover, #pwa-button2:hover {background: rgba(255,255,255,0.2);}@-moz-document url-prefix() {#pwa-button {display: none!important;}}</style><h3 id='sub-title2'>🚫 Ad Block Detected 😭</h3><div class='tabletop' id='tabletop'><br><div style='font-size:20px;'>We make <span style='color:yellow'>ZERO INCOME</span> without ads!</div></br>To continue using the no.1 trusted online dice roller with the best anti-rigging features, strongest community and the most features...<br/><br/><span style='color:yellow;font-size:20px;'>🙏 Please disable ad block in your browser to support us ❤️</span><br/><br>We love the diceing community and have reduced ads significantly. You can reduce ads further still by installing our app!<br><br></div><a id='pwa-button' href='javascript:void(0);' onclick=\"showPWA();gtag('event','pwa-install-clicked',{'event_category':'pwa-install-clicked','event_label':'pwa-install-clicked'});\" style='display: inline-block;'>Reduce Ads By 50%<span style='font-family: Arial, sans-serif;margin-top: 5px;color: #fff;display: block;font-style: italic;font-size: 16px;text-transform:none;'>Install our app for fewer ads.</span></a>";
+	 		
+	 	}
+	 	if(document.getElementById("history")) {
+	 		document.getElementById("history").innerHTML = "";
+	 		document.getElementById("history").style.display = "none";
+	 	}
+	}
+</script>
+			</div>
+		</footer>
+		<style>
+			
+		</style>
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+		<script>
+
+			function setCookie(name, value, expdays) {
+				var d = new Date();
+				d.setTime(d.getTime() + (expdays*24*60*60*1000));
+				document.cookie = name+"="+value+"; expires="+d.toUTCString()+"; path=/; SameSite=Lax; Secure";
+			}
+			
+			setCookie("pv",2,0.041666);
+			setCookie("lang","en",365);
+			
+			function hideHistory() {
+				document.getElementById('show-history').style.display = 'block';
+				document.getElementById('history').style.display = 'none';
+				setCookie("history",0,365);
+			}
+			
+			function showHistory() {
+				document.getElementById('show-history').style.display = 'none';
+				document.getElementById('history').style.display = 'block';
+				setCookie("history",1,365);
+			}
+			
+			let btnClicked = false;
+
+			function handleClick(e) {
+			  if (btnClicked) {
+			    e.preventDefault();
+			    return;
+			  }
+			  btnClicked = true;
+			  this.style.pointerEvents = "none";
+			  this.classList.add("noselect");
+			}
+
+			if(document.getElementById("roll-button")) {
+				document.getElementById("roll-button").addEventListener("click", handleClick);
+			}
+			if(document.getElementById("roll-button2")) {
+				document.getElementById("roll-button2").addEventListener("click", handleClick);
+			}
+		
+			var counter = 1;
+			var int = setInterval(function(){
+			$(".loader-title").css("visibility","visible");	
+			$('.loader-dice i').attr('class', 'df-solid-small-dot-d6-' + counter + ' rounded-dice');
+			    if (counter === 6){
+			        counter = 1; // If counter = 6, set it back to 1 for next loop
+			    } else {
+			        counter++; // Else, add 1 to the counter
+			    }
+			}, 75);
+			
+			$("#type-select,#num-select").on("change",function() {
+				var dice_num = $("#num-select").val();
+				var dice_type = $("#type-select").val();
+				if(dice_type == "color-dice") {
+					var newlink = "https://www.online-dice.com/roll-color-dice/";
+				} else if(dice_type == "perya-color-game") {
+					var newlink = "https://www.online-dice.com/roll-color-dice/";
+				} else {
+					var newlink = "https://www.online-dice.com/roll-dice/"+dice_num+"/"+dice_type+"/";
+				}
+				window.location = newlink;
+			});
+			
+			$("#lang-select").on("change",function() {
+				var lang = $("#lang-select").val();
+				var dice_num = $("#num-select").val();
+				var dice_type = $("#type-select").val();
+				var newlink = "https://www.online-dice.com/"+lang+"/roll-dice/"+dice_num+"/"+dice_type+"/";
+				window.location = newlink;
+			});
+			
+			$("#theme-select").on("change",function() {
+				var theme = $("#theme-select").val();
+				if(theme != "blue") {
+					$("#theme-css").attr("href","https://www.online-dice.com/css/"+theme+".php?v=082526");
+					if(theme == "gold" || theme == "sab-heaven") {
+						$("link[rel=mask-icon]").attr("color","#c6a44d");
+						$("meta[name=msapplication-TileColor]").attr("content","#c6a44d");
+						$("meta[name=theme-color]").attr("content","#c6a44d");
+					} else if (theme == "sab-blue" || theme == "sab-underwater") {
+						$("link[rel=mask-icon]").attr("color","#0088ff");
+						$("meta[name=msapplication-TileColor]").attr("content","#33aaff");
+						$("meta[name=theme-color]").attr("content","#33aaff");
+					} else if (theme == "green" || theme == "sab-green") {
+						$("link[rel=mask-icon]").attr("color","#008000");
+						$("meta[name=msapplication-TileColor]").attr("content","#008000");
+						$("meta[name=theme-color]").attr("content","#008000");
+					} else if (theme == "red" || theme == "sab-red" || theme == "sab-hell") {
+						$("link[rel=mask-icon]").attr("color","#B22222");
+						$("meta[name=msapplication-TileColor]").attr("content","#B22222");
+						$("meta[name=theme-color]").attr("content","#B22222");
+					} else if (theme == "pink") {
+						$("link[rel=mask-icon]").attr("color","#EE82EE");
+						$("meta[name=msapplication-TileColor]").attr("content","#EE82EE");
+						$("meta[name=theme-color]").attr("content","#EE82EE");
+					} else if (theme == "bw" || theme == "sab-black") {
+						$("link[rel=mask-icon]").attr("color","#000000");
+						$("meta[name=msapplication-TileColor]").attr("content","#000000");
+						$("meta[name=theme-color]").attr("content","#000000");
+					} else if (theme == "silver") {
+						$("link[rel=mask-icon]").attr("color","#999999");
+						$("meta[name=msapplication-TileColor]").attr("content","#999999");
+						$("meta[name=theme-color]").attr("content","#999999");
+					} else if (theme == "bronze") {
+						$("link[rel=mask-icon]").attr("color","#a56c43");
+						$("meta[name=msapplication-TileColor]").attr("content","#a56c43");
+						$("meta[name=theme-color]").attr("content","#a56c43");
+					}
+				} else {
+					$("#theme-css").attr("href","https://www.online-dice.com/css/style.php");
+					$("meta[name=theme-color]").attr("content","#4dacff");
+				}
+				setCookie("theme",theme,365);
+			});
+			
+			var funnytitles = Array("Rolling..", "Rolling Dice..", "Feeling Lucky?", "Woah!", "Amazing!", "Let's Roll!", "Let's Go!", "Good Luck!", "Fingers Crossed..");
+			var randomElement = funnytitles[Math.floor(Math.random()*funnytitles.length)]
+			$(".loader-title").html(randomElement);
+			
+			$(document).ready(function() {
+	
+				function hideloader() {
+					$(".loader-title").css("display","none");
+					$(".loader-dice").css("visibility","hidden");
+					$(".loader").addClass("hide");
+				}
+				
+				function hideMsg() {
+					$(".msg").css("display","none");
+				}
+				
+				function playConfettiSound() {
+					document.getElementById('success-sound').play();
+				}
+				
+				var timeout = null;
+				
+				clearTimeout(timeout);
+				timeout = setTimeout(playConfettiSound, 550);
+				timeout = setTimeout(hideloader, 1250);
+				timeout = setTimeout(hideMsg, 4800);
+				
+				setTimeout( function() {
+					$(".fixed-ad-top").attr("style","position:fixed;");                            
+				},900);
+
+			});
+			
+			if ('serviceWorker' in navigator) {
+			  window.addEventListener('load', function() {
+			    navigator.serviceWorker.register('/sw2.js').then(function(registration) {
+			      // Registration was successful
+			      console.log('ServiceWorker registration successful with scope: ', registration.scope);
+			    }, function(err) {
+			      // registration failed :(
+			      console.log('ServiceWorker registration failed: ', err);
+			    });
+			  });
+			}
+			
+			//Detects if device is on iOS
+			function isiOS() {
+			  return [
+			    'iPad Simulator',
+			    'iPhone Simulator',
+			    'iPod Simulator',
+			    'iPad',
+			    'iPhone',
+			    'iPod'
+			  ].includes(navigator.platform)
+			  // iPad on iOS 13 detection
+			  || (navigator.userAgent.includes("Mac") && "ontouchend" in document)
+			}
+			
+			const test = isiOS();
+			
+			//Detects if device is in standalone mode
+			const isInStandaloneMode = () => ('standalone' in window.navigator) && (window.navigator.standalone) || (window.matchMedia('(display-mode: standalone)').matches);
+			
+			if(isInStandaloneMode()) {
+				if(document.getElementById("pwa-button")) {
+					document.getElementById("pwa-button").style.display = "none";
+				}
+				if(document.getElementById("ad-box-top")) {
+					document.getElementById("ad-box-top").style.display = "none";
+				}
+				if(test) {
+					gtag('event','pageview-app-ios',{'event_category':'pageview-app-ios','event_label':'pageview-app-all'});
+				} else {
+					gtag('event','pageview-app-android',{'event_category':'pageview-app-android','event_label':'pageview-app-all'});
+				}
+			} else {
+				if(test) {
+					gtag('event','pageview-web-ios',{'event_category':'pageview-web-ios','event_label':'pageview-web-all'});
+					if(document.getElementById("pwa-button")) {
+					  	document.getElementById("pwa-button").style.display = "inline-block";
+					}
+				} else {
+					gtag('event','pageview-web',{'event_category':'pageview-web','event_label':'pageview-web-all'});
+					// Initialize deferredPrompt for use later to show browser install prompt.
+					let deferredPrompt;
+					let installPromptFired = false;
+					if(document.getElementById("pwa-button")) {
+						document.getElementById("pwa-button").style.display = "none";
+					}
+					
+					window.addEventListener('beforeinstallprompt', (e) => {
+					  // Prevent the mini-infobar from appearing on mobile
+		  			  e.preventDefault();
+					  // Stash the event so it can be triggered later.
+					  deferredPrompt = e;
+					  //installPrompt was fired
+					  installPromptFired = true;
+					  if(document.getElementById("pwa-button")) {
+					  	document.getElementById("pwa-button").style.display = "inline-block";
+					  }
+					});
+				}
+			}
+
+(() => {
+  'use strict';
+
+  const seenExtensions = new Set();
+
+  // --- Allowlist ---
+  const ALLOWED_PREFIXES = [
+    'https://www.gstatic.com/',
+    'https://translate.googleapis.com/',
+    'https://translate.google.com/',
+    'https://fonts.googleapis.com/',
+  	'https://fonts.gstatic.com/',  
   ];
 
-  const area = document.getElementById('dice-area');
-  const numSelect = document.getElementById('num-select');
-  const themeSelect = document.getElementById('theme-select');
-  const rollBtn = document.getElementById('roll');
-  const statsEl = document.getElementById('stats');
-  const historyEl = document.getElementById('history');
-
-  let history = [];
-  try { history = JSON.parse(localStorage.getItem('color_dice_history') || '[]'); } catch (e) { history = []; }
-  if (!Array.isArray(history)) history = [];
-
-  function randomColor() {
-    return COLORS[Math.floor(Math.random() * COLORS.length)];
+  function isAllowed(url) {
+    return ALLOWED_PREFIXES.some(prefix => url.startsWith(prefix));
   }
 
-  function dieEl(color) {
-    const d = document.createElement('div');
-    d.className = 'die';
-    const p = document.createElement('span');
-    p.className = 'pip';
-    p.style.background = color ? color.css : '#bbb';
-    d.appendChild(p);
-    return d;
-  }
-
-  function renderDice(n) {
-    area.innerHTML = '';
-    for (let i = 0; i < n; i++) {
-      area.appendChild(dieEl(randomColor()));
-    }
-  }
-
-  function roll() {
-    const dice = Array.from(area.querySelectorAll('.die'));
-    const rolled = [];
-    dice.forEach((d, i) => {
-      const c = randomColor();
-      rolled.push(c.css);
-      d.classList.remove('rolling');
-      void d.offsetWidth; // restart animation
-      d.classList.add('rolling');
-      setTimeout(() => {
-        d.querySelector('.pip').style.background = c.css;
-      }, 120 + (i % 3) * 40);
-    });
-
-    setTimeout(() => {
-      history.unshift(rolled);
-      if (history.length > 20) history = history.slice(0, 20);
-      try { localStorage.setItem('color_dice_history', JSON.stringify(history)); } catch (e) {}
-      renderStats();
-      renderHistory();
-    }, 500);
-  }
-
-  function renderStats() {
-    if (!history.length) { statsEl.innerHTML = ''; return; }
-    const counts = {};
-    COLORS.forEach(c => counts[c.css] = 0);
-    history.forEach(roll => roll.forEach(css => { if (counts[css] !== undefined) counts[css]++; }));
-
-    let max = 0;
-    Object.values(counts).forEach(v => max = Math.max(max, v));
-
-    const badges = COLORS
-      .filter(c => counts[c.css] > 0)
-      .map(c => {
-        const trophy = (max > 0 && counts[c.css] === max) ? ' 🏆' : '';
-        return `<span class="badge"><span class="dot" style="background:${c.css}"></span>${c.name} ×${counts[c.css]}${trophy}</span>`;
-      })
-      .join('');
-
-    // longest streak: longest run of consecutive rolls containing a given color
-    let best = { color: null, len: 0 };
-    COLORS.forEach(c => {
-      let run = 0, bestRun = 0;
-      history.forEach(roll => {
-        if (roll.includes(c.css)) { run++; bestRun = Math.max(bestRun, run); }
-        else { run = 0; }
+  // --- Reporting ---
+  function reportExtension(url, type) {
+    if (typeof gtag === 'function') {
+      gtag('event', 'chrome_extension_detected', {
+        event_category: 'Chrome Extension',
+        event_label: url,
+        event_value: type
       });
-      if (bestRun > best.len) best = { color: c, len: bestRun };
-    });
-
-    let streakHtml = '';
-    if (best.len >= 2 && best.color) {
-      streakHtml = `<span class="badge"><span class="dot" style="background:${best.color.css}"></span>Streak ${best.len} 🔥</span>`;
     }
-    statsEl.innerHTML = badges + streakHtml;
   }
 
-  function renderHistory() {
-    if (!history.length) {
-      historyEl.innerHTML = '<div class="empty">No rolls yet. Hit "Go Again" to start.</div>';
+  // --- Remove injected <link> and <script> tags ---
+  function removeInjectedNodes() {
+    const selectors = [
+      'link[href^="chrome-extension://"]',
+      'link[href^="moz-extension://"]',
+      'script[src^="chrome-extension://"]',
+      'script[src^="moz-extension://"]',
+      'link[href^="safari-web-extension://"]',
+      'script[src^="safari-web-extension://"]',
+    ];
+    document.querySelectorAll(selectors.join(',')).forEach(el => {
+      const url = el.href || el.src;
+      if (isAllowed(url)) return;
+      if (!seenExtensions.has(url)) {
+        reportExtension(url, el.tagName === 'LINK' ? 'css' : 'script');
+        seenExtensions.add(url);
+      }
+      el.remove();
+    });
+  }
+
+  // --- Detect rules injected into existing stylesheets ---
+  function removeInjectedStyleRules() {
+    Array.from(document.styleSheets).forEach(sheet => {
+      try {
+        void sheet.cssRules;
+      } catch {
+        if (sheet.ownerNode) {
+          const url = sheet.href || 'unknown-extension-sheet';
+          if (isAllowed(url)) return;
+          if (!seenExtensions.has(url)) {
+            reportExtension(url, 'injected-stylesheet');
+            seenExtensions.add(url);
+          }
+          sheet.ownerNode.remove();
+        }
+      }
+    });
+  }
+
+  // --- Snapshot & restore critical inline styles ---
+  const styleSnapshots = new Map();
+
+  function snapshotStyles(selector) {
+    document.querySelectorAll(selector).forEach(el => {
+      styleSnapshots.set(el, el.getAttribute('style') || '');
+    });
+  }
+
+  function restoreStyles() {
+    styleSnapshots.forEach((originalStyle, el) => {
+      const current = el.getAttribute('style') || '';
+      if (current !== originalStyle) {
+        reportExtension('inline-style-mutation:' + (el.id || el.className), 'style-override');
+        el.setAttribute('style', originalStyle);
+      }
+    });
+  }
+
+  // --- MutationObserver ---
+  const observer = new MutationObserver(mutations => {
+    for (const mutation of mutations) {
+      for (const node of mutation.addedNodes) {
+        if (node.nodeType !== 1) continue;
+        const href = node.href || '';
+        const src  = node.src  || '';
+        const url  = href || src;
+        if (isAllowed(url)) continue;
+        const isExtension = /^(chrome|moz|safari-web)-extension:\/\//i.test(url);
+        if (isExtension) {
+          if (!seenExtensions.has(url)) {
+            reportExtension(url, node.tagName === 'LINK' ? 'css' : 'script');
+            seenExtensions.add(url);
+          }
+          node.remove();
+        }
+        if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+          restoreStyles();
+        }
+      }
+    }
+    restoreStyles();
+  });
+
+  // --- Initialise ---
+  function init() {
+    snapshotStyles('body, header, nav, main, footer, .your-critical-class');
+    removeInjectedNodes();
+    removeInjectedStyleRules();
+    observer.observe(document.documentElement, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['style'],
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+
+  setInterval(() => {
+    removeInjectedNodes();
+    removeInjectedStyleRules();
+    restoreStyles();
+  }, 1000);
+
+})();
+		
+//Sticky ads logic
+const ads = document.querySelectorAll('#ad-box-right, #ad-box-left');
+const stickyThreshold = 360;
+const stopBeforeBottom = 400;
+const topSpacing = 100;
+
+function isVisible(el) {
+  return el && el.offsetParent !== null;
+}
+
+function updateAds() {
+  const scrollY = window.scrollY;
+  const docHeight = document.documentElement.scrollHeight;
+  const winHeight = window.innerHeight;
+  const maxScroll = docHeight - winHeight - stopBeforeBottom;
+
+  ads.forEach((ad) => {
+    if (!isVisible(ad)) {
+      ad.style.position = '';
+      ad.style.top = '';
       return;
     }
-    historyEl.innerHTML = history.map((roll, i) => {
-      const label = i === 0 ? 'This roll:' : 'Previous:';
-      const dice = roll.map(css =>
-        `<span class="mini"><span class="pip" style="background:${css}"></span></span>`
-      ).join('');
-      return `<div class="row"><span class="label">${label}</span>${dice}</div>`;
-    }).join('');
-  }
 
-  numSelect.addEventListener('change', () => {
-    renderDice(parseInt(numSelect.value, 10) || 4);
-  });
-
-  themeSelect.addEventListener('change', () => {
-    document.body.dataset.theme = themeSelect.value;
-    try { localStorage.setItem('color_dice_theme', themeSelect.value); } catch (e) {}
-  });
-
-  rollBtn.addEventListener('click', roll);
-
-  // restore saved theme
-  try {
-    const t = localStorage.getItem('color_dice_theme');
-    if (t && ['blue','green','red','purple','dark'].includes(t)) {
-      document.body.dataset.theme = t;
-      themeSelect.value = t;
+    if (scrollY <= stickyThreshold) {
+      // Before threshold: let CSS sticky handle it naturally
+      ad.style.position = '';
+      ad.style.top = '';
+      return;
     }
-  } catch (e) {}
 
-  // init
-  renderDice(parseInt(numSelect.value, 10) || 4);
-  renderStats();
-  renderHistory();
-</script>
-</body>
+    if (scrollY >= maxScroll) {
+      // Past bottom stop: anchor absolutely so it doesn't overlap footer
+      ad.style.position = 'sticky';
+      ad.style.top = (docHeight - stopBeforeBottom - ad.offsetHeight) + 'px';
+    } else {
+      // In sticky zone: fix to viewport, always exactly topSpacing from top
+      ad.style.position = 'sticky';
+      ad.style.top = topSpacing + 'px';
+    }
+  });
+}
+
+window.addEventListener('scroll', updateAds);
+window.addEventListener('resize', updateAds);
+updateAds();			
+		</script>
+	</body>
 </html>
