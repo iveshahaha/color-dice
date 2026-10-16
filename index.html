@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Color Dice — Roll 6-Sided Color Dice</title>
+<style>
+  :root {
+    --bg: #0a84ff;
+    --bg2: #0060df;
+    --card: rgba(255, 255, 255, 0.14);
+    --card-border: rgba(255, 255, 255, 0.22);
+    --text: #ffffff;
+    --muted: rgba(255, 255, 255, 0.85);
+    --accent: #ffffff;
+    --die: #ffffff;
+  }
+  body[data-theme="green"]  { --bg: #1e8e3e; --bg2: #137333; }
+  body[data-theme="red"]    { --bg: #d93025; --bg2: #a50e0e; }
+  body[data-theme="purple"] { --bg: #8430ce; --bg2: #5f259f; }
+  body[data-theme="dark"]   { --bg: #1f2430; --bg2: #12151c; --card: rgba(255,255,255,0.08); --card-border: rgba(255,255,255,0.14); }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: var(--text);
+    background: linear-gradient(160deg, var(--bg) 0%, var(--bg2) 100%);
+    background-attachment: fixed;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 40px 16px 60px; }
+  header { text-align: center; margin-bottom: 22px; }
+  header h1 { font-size: 34px; margin: 0 0 6px; letter-spacing: -0.02em; }
+  header p  { margin: 0; color: var(--muted); font-size: 15px; }
+
+  .controls {
+    display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;
+    margin-bottom: 20px;
+  }
+  select {
+    font-size: 15px; padding: 10px 12px; border-radius: 10px;
+    border: 1px solid var(--card-border); background: rgba(255,255,255,0.15);
+    color: var(--text); cursor: pointer; outline: none;
+  }
+  select option { color: #111; background: #fff; }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 18px;
+    padding: 24px;
+  }
+
+  .dice-area {
+    display: flex; flex-wrap: wrap; gap: 12px; justify-content: center;
+    min-height: 68px; align-items: center; margin-bottom: 22px;
+  }
+  .die {
+    width: 60px; height: 60px; background: var(--die);
+    border-radius: 12px; display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.22);
+    transition: transform 0.12s ease;
+  }
+  .die .pip { width: 22px; height: 22px; border-radius: 50%; background: #bbb; transition: background 0.1s; }
+  .die.rolling { animation: shake 0.45s ease; }
+  @keyframes shake {
+    0% { transform: rotate(0) scale(1); }
+    30% { transform: rotate(-12deg) scale(1.08); }
+    60% { transform: rotate(12deg) scale(1.08); }
+    100% { transform: rotate(0) scale(1); }
+  }
+
+  button#roll {
+    display: block; margin: 0 auto 20px; font-size: 20px; font-weight: 700;
+    padding: 14px 40px; border-radius: 999px; cursor: pointer;
+    border: none; background: #ffffff; color: #1a1a1a;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.22);
+    transition: transform 0.08s ease, box-shadow 0.08s ease;
+  }
+  button#roll:active { transform: scale(0.97); box-shadow: 0 2px 6px rgba(0,0,0,0.25); }
+
+  h2 { font-size: 17px; margin: 0 0 12px; text-align: center; }
+
+  .stats { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 12px; }
+  .badge {
+    background: #fff; color: #1a1a1a; border-radius: 8px; padding: 4px 10px;
+    font-size: 14px; font-weight: 700;
+  }
+  .badge .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; }
+
+  .history { font-size: 14px; }
+  .row {
+    display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+    border-bottom: 1px dashed rgba(255,255,255,0.4); padding: 6px 0;
+  }
+  .row:last-child { border-bottom: none; }
+  .row .label { min-width: 96px; color: var(--muted); font-size: 13px; }
+  .mini {
+    width: 26px; height: 26px; border-radius: 6px; background: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .mini .pip { width: 9px; height: 9px; border-radius: 50%; }
+  .empty { color: var(--muted); text-align: center; padding: 10px 0; }
+
+  footer { text-align: center; margin-top: 30px; color: var(--muted); font-size: 13px; }
+  footer a { color: var(--text); }
+</style>
+</head>
+<body data-theme="blue">
+<div class="wrap">
+  <header>
+    <h1>Color Dice</h1>
+    <p>Roll 6-sided color dice — Red, Orange, Yellow, Green, Blue, Purple</p>
+  </header>
+
+  <div class="controls">
+    <select id="num-select" title="Number of dice">
+      <option value="1">1 die</option>
+      <option value="2">2 dice</option>
+      <option value="3">3 dice</option>
+      <option value="4" selected>4 dice</option>
+      <option value="5">5 dice</option>
+      <option value="6">6 dice</option>
+      <option value="8">8 dice</option>
+      <option value="10">10 dice</option>
+      <option value="12">12 dice</option>
+      <option value="16">16 dice</option>
+      <option value="20">20 dice</option>
+      <option value="30">30 dice</option>
+      <option value="50">50 dice</option>
+      <option value="100">100 dice</option>
+    </select>
+    <select id="theme-select" title="Theme">
+      <option value="blue">Blue</option>
+      <option value="green">Green</option>
+      <option value="red">Red</option>
+      <option value="purple">Purple</option>
+      <option value="dark">Dark</option>
+    </select>
+  </div>
+
+  <div class="card">
+    <div class="dice-area" id="dice-area"></div>
+    <button id="roll">Go Again</button>
+
+    <div class="stats" id="stats"></div>
+    <h2>Your Last 20 Rolls</h2>
+    <div class="history" id="history"></div>
+  </div>
+
+  <footer>
+    Clean, self-contained color dice roller. No ads, no trackers, no external requests.
+  </footer>
+</div>
+
+<script>
+  const COLORS = [
+    { name: 'Red',    css: '#e53935' },
+    { name: 'Orange', css: '#fb8c00' },
+    { name: 'Yellow', css: '#fdd835' },
+    { name: 'Green',  css: '#43a047' },
+    { name: 'Blue',   css: '#1e88e5' },
+    { name: 'Purple', css: '#8e24aa' }
+  ];
+
+  const area = document.getElementById('dice-area');
+  const numSelect = document.getElementById('num-select');
+  const themeSelect = document.getElementById('theme-select');
+  const rollBtn = document.getElementById('roll');
+  const statsEl = document.getElementById('stats');
+  const historyEl = document.getElementById('history');
+
+  let history = [];
+  try { history = JSON.parse(localStorage.getItem('color_dice_history') || '[]'); } catch (e) { history = []; }
+  if (!Array.isArray(history)) history = [];
+
+  function randomColor() {
+    return COLORS[Math.floor(Math.random() * COLORS.length)];
+  }
+
+  function dieEl(color) {
+    const d = document.createElement('div');
+    d.className = 'die';
+    const p = document.createElement('span');
+    p.className = 'pip';
+    p.style.background = color ? color.css : '#bbb';
+    d.appendChild(p);
+    return d;
+  }
+
+  function renderDice(n) {
+    area.innerHTML = '';
+    for (let i = 0; i < n; i++) {
+      area.appendChild(dieEl(randomColor()));
+    }
+  }
+
+  function roll() {
+    const dice = Array.from(area.querySelectorAll('.die'));
+    const rolled = [];
+    dice.forEach((d, i) => {
+      const c = randomColor();
+      rolled.push(c.css);
+      d.classList.remove('rolling');
+      void d.offsetWidth; // restart animation
+      d.classList.add('rolling');
+      setTimeout(() => {
+        d.querySelector('.pip').style.background = c.css;
+      }, 120 + (i % 3) * 40);
+    });
+
+    setTimeout(() => {
+      history.unshift(rolled);
+      if (history.length > 20) history = history.slice(0, 20);
+      try { localStorage.setItem('color_dice_history', JSON.stringify(history)); } catch (e) {}
+      renderStats();
+      renderHistory();
+    }, 500);
+  }
+
+  function renderStats() {
+    if (!history.length) { statsEl.innerHTML = ''; return; }
+    const counts = {};
+    COLORS.forEach(c => counts[c.css] = 0);
+    history.forEach(roll => roll.forEach(css => { if (counts[css] !== undefined) counts[css]++; }));
+
+    let max = 0;
+    Object.values(counts).forEach(v => max = Math.max(max, v));
+
+    const badges = COLORS
+      .filter(c => counts[c.css] > 0)
+      .map(c => {
+        const trophy = (max > 0 && counts[c.css] === max) ? ' 🏆' : '';
+        return `<span class="badge"><span class="dot" style="background:${c.css}"></span>${c.name} ×${counts[c.css]}${trophy}</span>`;
+      })
+      .join('');
+
+    // longest streak: longest run of consecutive rolls containing a given color
+    let best = { color: null, len: 0 };
+    COLORS.forEach(c => {
+      let run = 0, bestRun = 0;
+      history.forEach(roll => {
+        if (roll.includes(c.css)) { run++; bestRun = Math.max(bestRun, run); }
+        else { run = 0; }
+      });
+      if (bestRun > best.len) best = { color: c, len: bestRun };
+    });
+
+    let streakHtml = '';
+    if (best.len >= 2 && best.color) {
+      streakHtml = `<span class="badge"><span class="dot" style="background:${best.color.css}"></span>Streak ${best.len} 🔥</span>`;
+    }
+    statsEl.innerHTML = badges + streakHtml;
+  }
+
+  function renderHistory() {
+    if (!history.length) {
+      historyEl.innerHTML = '<div class="empty">No rolls yet. Hit "Go Again" to start.</div>';
+      return;
+    }
+    historyEl.innerHTML = history.map((roll, i) => {
+      const label = i === 0 ? 'This roll:' : 'Previous:';
+      const dice = roll.map(css =>
+        `<span class="mini"><span class="pip" style="background:${css}"></span></span>`
+      ).join('');
+      return `<div class="row"><span class="label">${label}</span>${dice}</div>`;
+    }).join('');
+  }
+
+  numSelect.addEventListener('change', () => {
+    renderDice(parseInt(numSelect.value, 10) || 4);
+  });
+
+  themeSelect.addEventListener('change', () => {
+    document.body.dataset.theme = themeSelect.value;
+    try { localStorage.setItem('color_dice_theme', themeSelect.value); } catch (e) {}
+  });
+
+  rollBtn.addEventListener('click', roll);
+
+  // restore saved theme
+  try {
+    const t = localStorage.getItem('color_dice_theme');
+    if (t && ['blue','green','red','purple','dark'].includes(t)) {
+      document.body.dataset.theme = t;
+      themeSelect.value = t;
+    }
+  } catch (e) {}
+
+  // init
+  renderDice(parseInt(numSelect.value, 10) || 4);
+  renderStats();
+  renderHistory();
+</script>
+</body>
+</html>
